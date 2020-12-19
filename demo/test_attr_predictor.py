@@ -22,7 +22,7 @@ def parse_args():
         '--checkpoint',
         type=str,
         help='checkpoint file',
-        default='checkpoint/Predict/vgg/global/latest.pth')
+        default='checkpoint/latest.pth')
     parser.add_argument(
         '--config',
         help='test config file path',
@@ -37,7 +37,6 @@ def main():
     args = parse_args()
     cfg = Config.fromfile(args.config)
 
-    img_tensor = get_img_tensor(args.input, args.use_cuda)
     # global attribute predictor will not use landmarks
     # just set a default value
     landmark_tensor = torch.zeros(8)
@@ -49,13 +48,20 @@ def main():
         landmark_tensor = landmark_tensor.cuda()
 
     model.eval()
-
+    attr_list=[]
     # predict probabilities for each attribute
-    attr_prob = model(img_tensor, attr=None,
+    for i in range(1892):
+        img_tensor = get_img_tensor("image/"+str(i)+".jpg", args.use_cuda)
+        attr_prob = model(img_tensor, attr=None,
                       landmark=landmark_tensor, return_loss=False)
-    attr_predictor = AttrPredictor(cfg.data.test)
-
-    attr_predictor.show_prediction(attr_prob)
+        attr_predictor = AttrPredictor(cfg.data.test)
+        attr_list.append(attr_predictor.show_prediction(attr_prob))
+    
+        if i%100==0:
+            print("processing image "+ str(i))
+    import pickle
+    fo=open("attr_list.pkl","wb")
+    pickle.dump(attr_list,fo)
 
 
 if __name__ == '__main__':
